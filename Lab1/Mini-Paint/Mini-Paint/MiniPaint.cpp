@@ -15,40 +15,40 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	int       nCmdShow)
 {
 
-LPWSTR ClassName = L"mainClass";
+	LPWSTR ClassName = L"mainClass";
 
-if (!RegWindowClass(hInstance, ClassName))
-return -1;
+	if (!RegWindowClass(hInstance, ClassName))
+		return -1;
 
-const int WindowH = 720;
-const int WindowW = 1280;
+	const int WindowH = 720;
+	const int WindowW = 1280;
 
-RECT scr_rect;
-GetWindowRect(GetDesktopWindow(), &scr_rect);
-int WindowCenterX = (scr_rect.right / 2) - (WindowW / 2);
-int WindowCenterY = (scr_rect.bottom / 2) - (WindowH / 2);
+	RECT scr_rect;
+	GetWindowRect(GetDesktopWindow(), &scr_rect);
+	int WindowCenterX = (scr_rect.right / 2) - (WindowW / 2);
+	int WindowCenterY = (scr_rect.bottom / 2) - (WindowH / 2);
 
-HMENU hMenu = CreateMenu();
-HMENU hPopMenu = CreatePopupMenu();
-AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hPopMenu, L"File");
-AppendMenu(hPopMenu, MF_STRING, IDM_MENU_IMAGE_OPEN, L" Chouse Image");
+	HMENU hMenu = CreateMenu();
+	HMENU hPopMenu = CreatePopupMenu();
+	AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hPopMenu, L"File");
+	AppendMenu(hPopMenu, MF_STRING, IDM_MENU_IMAGE_OPEN, L" Chouse Image");
 
-HWND hWnd;
-hWnd = CreateWindow(ClassName, L"Sprites", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-	WindowCenterX, WindowCenterY, WindowW, WindowH, NULL, hMenu, hInstance, NULL);
+	HWND hWnd;
+	hWnd = CreateWindow(ClassName, L"Sprites", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		WindowCenterX, WindowCenterY, WindowW, WindowH, NULL, hMenu, hInstance, NULL);
 
-if (!hWnd) return -2;
+	if (!hWnd) return -2;
 
-MSG msg = { 0 };
-int Getter = 0;
-while ((Getter = GetMessage(&msg, NULL, 0, 0) != 0))
-{
-	if (Getter == -1) return -1;
-	TranslateMessage(&msg);
-	DispatchMessage(&msg);
-}
+	MSG msg = { 0 };
+	int Getter = 0;
+	while ((Getter = GetMessage(&msg, NULL, 0, 0) != 0))
+	{
+		if (Getter == -1) return -1;
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 
-return msg.wParam;
+	return msg.wParam;
 }
 
 ATOM RegWindowClass(HINSTANCE hInst, LPWSTR lpClassName)
