@@ -205,7 +205,7 @@ void LoadDllToProcess(HWND hWnd)
 	
 	if (PID != 0)
 	{
-		char fullPath[MAX_PATH] = "C:\\Users\\Ilya\\Documents\\GitHub\\WinApi\\WinApi\\Lab3\\DunamicLib2\\Debug\\DunamicLib.dll";
+		char fullPath[MAX_PATH] = "C:\\Users\\NotePad.by\\Documents\\GitHub\\WinApi\\Lab3\\DunamicLib2\\Debug\\DunamicLib.dll";
 		LPVOID libAddr, llParam;
 
 		HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, false, PID);

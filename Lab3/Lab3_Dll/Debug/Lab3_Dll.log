@@ -1,3 +1,5 @@
-﻿  Lab3Dll.cpp
-  Lab3_Dll.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab3\Lab3_Dll\Debug\Lab3_Dll.exe
-  Lab3_Dll.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab3\Lab3_Dll\Debug\Lab3_Dll.pdb (Partial PDB)
+﻿  stdafx.cpp
+  Lab3Dll.cpp
+  LINK : не найден или не выполнена сборка C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab3\Lab3_Dll\Debug\Lab3_Dll.exe при последней инкрементной компоновке; выполняется полная компоновка
+  Lab3_Dll.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab3\Lab3_Dll\Debug\Lab3_Dll.exe
+  Lab3_Dll.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab3\Lab3_Dll\Debug\Lab3_Dll.pdb (Partial PDB)

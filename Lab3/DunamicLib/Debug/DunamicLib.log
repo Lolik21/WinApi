@@ -1,7 +1,2 @@
-﻿  DunamicLib.cpp
-c:\users\ilya\documents\github\winapi\winapi\lab3\dunamiclib\dunamiclib.cpp(5): warning C4067: непредвиденные лексемы за директивой препроцессора, требуется newline
-c:\users\ilya\documents\github\winapi\winapi\lab3\dunamiclib\dunamiclib.cpp(77): warning C4305: return: усечение из "int" в "bool"
-c:\users\ilya\documents\github\winapi\winapi\lab3\dunamiclib\dunamiclib.cpp(85): warning C4305: return: усечение из "int" в "bool"
-c:\users\ilya\documents\github\winapi\winapi\lab3\dunamiclib\dunamiclib.cpp(144): warning C4018: <=: несоответствие типов со знаком и без знака
-  DunamicLib.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab3\DunamicLib\Debug\DunamicLib.dll
-  DunamicLib.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab3\DunamicLib\Debug\DunamicLib.pdb (Partial PDB)
+﻿  DunamicLib.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab3\Lab3_Dll\Debug\DunamicLib.dll
+  DunamicLib.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab3\Lab3_Dll\Debug\DunamicLib.pdb (Partial PDB)
