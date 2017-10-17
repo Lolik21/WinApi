@@ -16,6 +16,10 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <vector>
+#include <locale.h>
+#include "commdlg.h"
+#include <string> 
 
 
 // TODO: Установите здесь ссылки на дополнительные заголовки, требующиеся для программы

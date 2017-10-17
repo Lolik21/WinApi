@@ -44,6 +44,7 @@ BEGIN
     POPUP "Файл"
     BEGIN
         MENUITEM "Выбрать файл",                IDM_CHOUSE_FILE
+        MENUITEM "Сортировать",                 IDM_START
     END
 END
 
