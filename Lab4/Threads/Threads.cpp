@@ -5,16 +5,16 @@
 #include "Threads.h"
 
 #define LINES_TOTASK 10
-#define THREADS_COUNT 5
+#define THREADS_COUNT 1
 #define MAX_LOADSTRING 100
-#define MSG_SORT_THREAD_CREATED L"Sort threads created!\n"
-#define MSG_DEVIDER_THREAD_CREATED L"Devider created!\n"
-#define MSG_FILE_OPENED L"File opened. Path : \n"
-#define MSG_TASKS_CREATED L"Tasks for threads created!\n"
+#define MSG_SORT_THREAD_CREATED L"Sort threads created!\r\n"
+#define MSG_DEVIDER_THREAD_CREATED L"Devider created!\r\n"
+#define MSG_FILE_OPENED L"File opened. Path : \r\n"
+#define MSG_TASKS_CREATED L"Tasks for threads created!\r\n"
 #define MSG_TASK_COUNT L"Task count : "
-#define MSG_SORT_THREAD_T_F L"%d finished task\n"
-#define MSG_SORT_THREAD_F L"%d terminated\n"
-#define MSG_DEVIDER_F L"Devider terminated!\n"
+#define MSG_SORT_THREAD_T_F L"%d finished task\r\n"
+#define MSG_SORT_THREAD_F L"%d terminated\r\n"
+#define MSG_DEVIDER_F L"Devider terminated!\r\n"
 
 HINSTANCE hInst;
 HWND hMain;
@@ -139,13 +139,22 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 void AppendText(const HWND &hwnd, LPCWSTR newText)
 {
 	WaitForSingleObject(TextBoxMutex, INFINITE);
+
 	HWND hwndOutput = hEdit;
-	DWORD StartPos, EndPos;
-	SendMessageW(hwndOutput, EM_GETSEL, (WPARAM)&StartPos, (WPARAM)&EndPos);
-	int outLength = GetWindowTextLength(hwndOutput);
-	SendMessageW(hwndOutput, EM_SETSEL, outLength, outLength);
-	SendMessageW(hwndOutput, EM_REPLACESEL, TRUE, (LPARAM)newText);
-	SendMessageW(hwndOutput, EM_SETSEL, StartPos, EndPos);
+
+	int outLength = GetWindowTextLength(hwndOutput) + wcslen(newText) + 1;
+
+	TCHAR * buf = (TCHAR *)GlobalAlloc(GPTR, outLength * sizeof(TCHAR));
+	if (!buf) return;
+
+	GetWindowText(hwndOutput, buf, outLength);
+
+	_tcscat_s(buf, outLength, newText);
+
+	SetWindowText(hwndOutput, buf);
+
+	GlobalFree(buf);
+
 	ReleaseMutex(TextBoxMutex);
 }
 
@@ -159,7 +168,7 @@ void RedrawEditBox(HWND hWnd)
 void PrintAddedTask(int i)
 {
 	wchar_t buff[256];
-	swprintf_s(buff, L"Devider added task to ID : %d", i);
+	swprintf_s(buff, L"Devider added task to ID : %d \r\n", i);
 	AppendText(hMain, buff);
 }
 
@@ -175,7 +184,6 @@ bool AddToDeviderArr(Task* AddingTask, int i)
 		if (DeviderArr[i]->IsDone == true)
 		{
 			DeviderArr[i] = AddingTask;
-			PrintAddedTask(i);
 		}
 		else
 		{
@@ -192,10 +200,12 @@ DWORD WINAPI DeviderThreadProc(LPVOID lpParam) {
 	size_t i = 0;
 	int k = 0;
 	
-	while (i < TaskQuery.size())
+	while (k < TaskQuery.size())
 	{
-		while (!AddToDeviderArr(TaskQuery[i],i)) Sleep(10);
+		while (!AddToDeviderArr(TaskQuery[k],i)) Sleep(10);
+		k++;
 		i++;
+		if (i >= THREADS_COUNT) i = 0;
 	}
 	AppendText(hMain, MSG_DEVIDER_F);
 	ExitThread(0);
@@ -209,19 +219,32 @@ Task* GetTask(int Identifier)
 	return RezTask;
 }
 
+void SetTaskComplite(int Identifier)
+{
+	WaitForSingleObject(DeviderArrMutex, INFINITE);
+	DeviderArr[Identifier]->IsDone = true;
+	ReleaseMutex(DeviderArrMutex);
+}
 DWORD WINAPI SortThreadProc(LPVOID lpParam) {
 	int Identifier = (int)lpParam;
 	bool IsTerminate = false;
 	while (!IsTerminate)
 	{
 		Task* ThreadTask = GetTask(Identifier);
-		if (ThreadTask != NULL && ThreadTask->IsDone == false)
+		if (ThreadTask != NULL && ThreadTask->IsTerminate == true)
 		{
-			// TODO here;
-			wchar_t mybuff[256];
-			swprintf_s(mybuff, MSG_SORT_THREAD_T_F, GetThreadId(GetCurrentThread()));
-			AppendText(hMain, mybuff);
+			IsTerminate = true;
 		}
+		else
+		{
+			if (ThreadTask != NULL && ThreadTask->IsDone == false)
+			{
+				SetTaskComplite(Identifier);
+				wchar_t mybuff[256];
+				swprintf_s(mybuff, MSG_SORT_THREAD_T_F, GetThreadId(GetCurrentThread()));
+				AppendText(hMain, mybuff);
+			}
+		}		
 	}
 	wchar_t buff[256];
 	swprintf_s(buff, MSG_SORT_THREAD_F, GetThreadId(GetCurrentThread()));
@@ -271,12 +294,24 @@ void OpenSourceFile(HWND hWnd)
 	ofn.Flags = OFN_EXPLORER;
 	if (GetOpenFileName(&ofn) == TRUE)
 	{
-		FileName = (TCHAR*)GlobalAlloc(GPTR, sizeof(ofn.lpstrFile) + 1);
-		wcscpy_s(FileName,MAX_PATH, ofn.lpstrFile);
+		FileName = (TCHAR*)GlobalAlloc(GPTR, (wcslen(ofn.lpstrFile) + 1)*2);
+		for (int i = 0; i < wcslen(ofn.lpstrFile)+1; i++)
+		{
+			FileName[i] = ofn.lpstrFile[i];
+		}
 		AppendText(hWnd, MSG_FILE_OPENED);
 		AppendText(hWnd, FileName);
-		AppendText(hWnd, L"\n");
+		AppendText(hWnd, L"\r\n");
 	}
+}
+
+Task* GetNewTask()
+{
+	Task *NewTask = new Task();
+	NewTask->IsDone = false;
+	NewTask->IsTerminate = false;
+	NewTask->SortedInd = 0;
+	return NewTask;
 }
 
 void PrepareTasks()
@@ -284,9 +319,7 @@ void PrepareTasks()
 	DWORD i = 0;
 	int LineSize = 0;
 	int LinesFound = 0;
-	Task *NewTask = new Task();
-	NewTask->IsDone = false;
-	NewTask->IsTerminate = false;
+	Task *NewTask = GetNewTask();
 	while (i < FileSize)
 	{
 		while (i < FileSize && FileView[i] != '\n')
@@ -305,7 +338,7 @@ void PrepareTasks()
 			if (LinesFound == LINES_TOTASK)
 			{
 				TaskQuery.insert(TaskQuery.end(), NewTask);
-				NewTask = new Task();
+				NewTask = GetNewTask();
 				LinesFound = 0;
 			}
 			else
@@ -336,7 +369,7 @@ void PrintTaskCount(HWND hWnd)
 {
 	AppendText(hWnd, MSG_TASK_COUNT);
 	wchar_t m_reportFileName[10];
-	swprintf_s(m_reportFileName, L"%d\n", TaskQuery.size());
+	swprintf_s(m_reportFileName, L"%d\r\n", TaskQuery.size());
 	AppendText(hWnd, m_reportFileName);
 }
 
@@ -359,9 +392,9 @@ void OnStartPerform(HWND hWnd)
 	HANDLE Devider = CreateThread(NULL, 0, &DeviderThreadProc, 0, 0, NULL);
 	AppendText(hWnd, MSG_DEVIDER_THREAD_CREATED);
 
-	WaitForSingleObject(Devider, INFINITE);
-	WaitForMultipleObjects(THREADS_COUNT, hThreads, TRUE, INFINITE);
-	ConcatinateRezult();
+	//WaitForSingleObject(Devider, INFINITE);
+	//WaitForMultipleObjects(THREADS_COUNT, hThreads, TRUE, INFINITE);
+	//ConcatinateRezult();
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

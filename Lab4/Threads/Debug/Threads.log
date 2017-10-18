@@ -1,3 +1,5 @@
 ﻿  Threads.cpp
+c:\users\ilya\documents\github\winapi\winapi\lab4\threads\threads.cpp(203): warning C4018: <: несоответствие типов со знаком и без знака
+c:\users\ilya\documents\github\winapi\winapi\lab4\threads\threads.cpp(298): warning C4018: <: несоответствие типов со знаком и без знака
   Threads.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab4\Threads\Debug\Threads.exe
   Threads.vcxproj -> C:\Users\Ilya\Documents\GitHub\WinApi\WinApi\Lab4\Threads\Debug\Threads.pdb (Partial PDB)
