@@ -5,7 +5,7 @@
 #include "Threads.h"
 
 #define LINES_TOTASK 10
-#define THREADS_COUNT 1
+#define THREADS_COUNT 5
 #define MAX_LOADSTRING 100
 #define MSG_SORT_THREAD_CREATED L"Sort threads created!\r\n"
 #define MSG_DEVIDER_THREAD_CREATED L"Devider created!\r\n"
@@ -15,6 +15,7 @@
 #define MSG_SORT_THREAD_T_F L"%d(%d) finished task\r\n"
 #define MSG_SORT_THREAD_F L"%d terminated\r\n"
 #define MSG_DEVIDER_F L"Devider terminated!\r\n"
+#define MSG_DONE L"SORT DONE!\r\n"
 
 HINSTANCE hInst;
 HWND hMain;
@@ -111,7 +112,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, 640, 320, nullptr, nullptr, hInstance, nullptr);
-	HWND hEditBox = CreateWindowExW(NULL, L"EDIT", NULL, WS_BORDER | WS_CHILD | WS_VISIBLE | ES_READONLY | ES_AUTOVSCROLL | ES_MULTILINE | ES_OEMCONVERT,
+	HWND hEditBox = CreateWindowExW(NULL, L"EDIT", NULL, WS_BORDER | WS_CHILD | WS_VISIBLE | WS_VSCROLL
+		| ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_MULTILINE | ES_READONLY | ES_OEMCONVERT,
 		20, 20, 100, 100, hWnd, NULL, hInst, NULL);
 	hEdit = hEditBox;
 
@@ -135,7 +137,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
-void AppendText(const HWND &hwnd, LPCWSTR newText)
+void AppendText(LPCWSTR newText)
 {
 	WaitForSingleObject(TextBoxMutex, INFINITE);
 
@@ -161,14 +163,14 @@ void RedrawEditBox(HWND hWnd)
 {
 	RECT wndRECT;
 	GetWindowRect(hWnd, &wndRECT);
-	SetWindowPos(hEdit, HWND_TOP, 0, 0, wndRECT.right, wndRECT.bottom, SWP_SHOWWINDOW);	
+	SetWindowPos(hEdit, HWND_TOP, 0, 0, wndRECT.right - wndRECT.left - 17, wndRECT.bottom - wndRECT.top-60, SWP_SHOWWINDOW);
 }
 
 void PrintAddedTask(int i)
 {
 	wchar_t buff[256];
 	swprintf_s(buff, L"Devider added task to ID : %d \r\n", i);
-	AppendText(hMain, buff);
+	AppendText(buff);
 }
 
 bool AddToDeviderArr(Task* AddingTask, int i)
@@ -212,7 +214,7 @@ DWORD WINAPI DeviderThreadProc(LPVOID lpParam) {
 	{
 		while (!AddToDeviderArr(EndTask, i)) Sleep(10);
 	}
-	AppendText(hMain, MSG_DEVIDER_F);
+	AppendText(MSG_DEVIDER_F);
 	PostMessage(hMain, WM_USER, 0, 0);
 	ExitThread(0);
 }
@@ -235,8 +237,8 @@ void SetTaskComplite(int Identifier)
 bool IsLarger(Line* Line1, Line* Line2)
 {
 	if (Line2 == NULL && Line1 == NULL) return false;
-	if (Line2 == NULL) return true;
-	if (Line1 == NULL) return false;
+	if (Line2 == NULL) return false;
+	if (Line1 == NULL) return true;
 	int Min = 0;
 	if (Line1->size > Line2->size) Min = Line2->size;
 	else Min = Line1->size;
@@ -288,13 +290,13 @@ DWORD WINAPI SortThreadProc(LPVOID lpParam) {
 				SetTaskComplite(Identifier);
 				wchar_t mybuff[256];
 				swprintf_s(mybuff, MSG_SORT_THREAD_T_F, GetThreadId(GetCurrentThread()),Identifier);
-				AppendText(hMain, mybuff);
+				AppendText(mybuff);
 			}
 		}		
 	}
 	wchar_t buff[256];
 	swprintf_s(buff, MSG_SORT_THREAD_F, GetThreadId(GetCurrentThread()));
-	AppendText(hMain, buff);
+	AppendText(buff);
 	PostMessage(hMain, WM_USER, 0, 0);
 	ExitThread(0);
 }
@@ -347,9 +349,9 @@ void OpenSourceFile(HWND hWnd)
 		{
 			FileName[i] = ofn.lpstrFile[i];
 		}
-		AppendText(hWnd, MSG_FILE_OPENED);
-		AppendText(hWnd, FileName);
-		AppendText(hWnd, L"\r\n");
+		AppendText(MSG_FILE_OPENED);
+		AppendText(FileName);
+		AppendText(L"\r\n");
 	}
 }
 
@@ -391,7 +393,7 @@ void PrepareTasks()
 			}
 			else
 			{
-				if (i >= FileSize)
+				if (i >= FileSize-1)
 				{
 					TaskQuery.insert(TaskQuery.end(), NewTask);
 				}
@@ -404,7 +406,8 @@ void PrepareTasks()
 
 void WriteLineToFile(HANDLE hFile,Line* Line, int MainOffcet)
 {
-	WriteFile(hFile, FileView + MainOffcet, Line->size, NULL, NULL);
+	SetFilePointer(hFile, MainOffcet, NULL, NULL);
+	WriteFile(hFile, FileView + Line->offcet, Line->size, NULL, NULL);
 }
 
 void ConcatinateRezult()
@@ -412,37 +415,37 @@ void ConcatinateRezult()
 	OpenSourceFile(hMain);
 	int MainOffcet = 0;
 	HANDLE hFile = CreateFile(FileName, FILE_WRITE_DATA, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	for (int i = 0; i < TaskQuery.size()*LINES_TOTASK; i++)
+	for (int j = 0; j < TaskQuery.size()*LINES_TOTASK; j++)
 	{
 		int Ind = 0;
 		Line* Max = NULL;
 		for (int i = 0; i < TaskQuery.size(); i++)
 		{
-			if (IsLarger(TaskQuery[i]->Lines[TaskQuery[i]->SortedInd], Max))
+			if (TaskQuery[i]->SortedInd < LINES_TOTASK)
 			{
-				Max = TaskQuery[i]->Lines[TaskQuery[i]->SortedInd];
-				Ind = i;
-			}
-		}	
-		TaskQuery[Ind]->SortedInd++;
-		WriteLineToFile(hFile, Max, MainOffcet);
-		MainOffcet = MainOffcet + Max->size;
+				if (IsLarger(Max, TaskQuery[i]->Lines[TaskQuery[i]->SortedInd]))
+				{
+					Max = TaskQuery[i]->Lines[TaskQuery[i]->SortedInd];
+					Ind = i;
+				}
+			}			
+		}
+		if (Max != NULL)
+		{
+			TaskQuery[Ind]->SortedInd++;
+			WriteLineToFile(hFile, Max, MainOffcet);
+			MainOffcet = MainOffcet + Max->size;
+		}		
 	}
 	CloseHandle(hFile);
 }
 
-HANDLE CreateMyFile()
-{
-	// TODO 
-	return NULL;
-}
-
 void PrintTaskCount(HWND hWnd)
 {
-	AppendText(hWnd, MSG_TASK_COUNT);
+	AppendText(MSG_TASK_COUNT);
 	wchar_t m_reportFileName[10];
 	swprintf_s(m_reportFileName, L"%d\r\n", TaskQuery.size());
-	AppendText(hWnd, m_reportFileName);
+	AppendText(m_reportFileName);
 }
 
 HANDLE hThreads[THREADS_COUNT];
@@ -453,19 +456,33 @@ void OnStartPerform(HWND hWnd)
 	if (FileName == NULL) return;
 	if (!MapFile(FileName)) return;
 	PrepareTasks();
-	AppendText(hWnd, MSG_TASKS_CREATED);
+	AppendText(MSG_TASKS_CREATED);
 	PrintTaskCount(hWnd);
 	DeviderArrMutex = CreateMutex(NULL, FALSE, NULL);
 	for (int i = 0; i < THREADS_COUNT; i++)
 	{
 		hThreads[i] = CreateThread(NULL, 0, &SortThreadProc, (LPVOID)i, 0, NULL);
 	}
-	AppendText(hWnd, MSG_SORT_THREAD_CREATED);	
+	AppendText(MSG_SORT_THREAD_CREATED);	
 	Devider = CreateThread(NULL, 0, &DeviderThreadProc, 0, 0, NULL);
-	AppendText(hWnd, MSG_DEVIDER_THREAD_CREATED);	
+	AppendText(MSG_DEVIDER_THREAD_CREATED);	
 }
 
 int ThreadsTermCount = 0;
+
+void ClearMem()
+{
+	for (int i = 0; i < TaskQuery.size(); i++)
+	{
+		for (int j = 0; j < LINES_TOTASK; j++)
+		{
+			delete TaskQuery[i]->Lines[j];
+		}
+		delete TaskQuery[i];
+	}
+	TaskQuery.clear();
+	GlobalFree(FileName);
+}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -478,6 +495,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			WaitForSingleObject(Devider, INFINITE);
 			WaitForMultipleObjects(THREADS_COUNT, hThreads, TRUE, INFINITE);
 			ConcatinateRezult();
+			AppendText(MSG_DONE);
+			ClearMem();
+			SendMessage(hEdit, WM_PAINT, 0, 0);
 		}
 		break;
 	case WM_CREATE:
@@ -491,9 +511,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case IDM_CHOUSE_FILE:
 			OpenSourceFile(hWnd);
+			SendMessage(hEdit, WM_PAINT, 0, 0);
 			break;
 		case IDM_START:
 			OnStartPerform(hWnd);
+			SendMessage(hEdit, WM_PAINT, 0, 0);
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
