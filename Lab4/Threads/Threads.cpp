@@ -12,7 +12,7 @@
 #define MSG_FILE_OPENED L"File opened. Path : \r\n"
 #define MSG_TASKS_CREATED L"Tasks for threads created!\r\n"
 #define MSG_TASK_COUNT L"Task count : "
-#define MSG_SORT_THREAD_T_F L"%d finished task\r\n"
+#define MSG_SORT_THREAD_T_F L"%d(%d) finished task\r\n"
 #define MSG_SORT_THREAD_F L"%d terminated\r\n"
 #define MSG_DEVIDER_F L"Devider terminated!\r\n"
 
@@ -58,7 +58,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-
 
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_THREADS, szWindowClass, MAX_LOADSTRING);
@@ -207,7 +206,14 @@ DWORD WINAPI DeviderThreadProc(LPVOID lpParam) {
 		i++;
 		if (i >= THREADS_COUNT) i = 0;
 	}
+	Task *EndTask = new Task();
+	EndTask->IsTerminate = true;
+	for (int i = 0; i < THREADS_COUNT; i++)
+	{
+		while (!AddToDeviderArr(EndTask, i)) Sleep(10);
+	}
 	AppendText(hMain, MSG_DEVIDER_F);
+	PostMessage(hMain, WM_USER, 0, 0);
 	ExitThread(0);
 }
 
@@ -225,6 +231,45 @@ void SetTaskComplite(int Identifier)
 	DeviderArr[Identifier]->IsDone = true;
 	ReleaseMutex(DeviderArrMutex);
 }
+
+bool IsLarger(Line* Line1, Line* Line2)
+{
+	if (Line2 == NULL && Line1 == NULL) return false;
+	if (Line2 == NULL) return true;
+	if (Line1 == NULL) return false;
+	int Min = 0;
+	if (Line1->size > Line2->size) Min = Line2->size;
+	else Min = Line1->size;
+	for (int i = 0; i < Min; i++)
+	{
+		if (FileView[Line1->offcet + i] > FileView[Line2->offcet + i])
+			return true;
+		if (FileView[Line1->offcet + i] < FileView[Line2->offcet + i])
+			return false;
+	}
+	return false;
+}
+
+void SortLines(Task* CurrTask)
+{
+	Line* Temp;
+	for (int i = 0; i < LINES_TOTASK - 1; i++)
+	{
+		for (int j = 0; j < LINES_TOTASK - i - 1; j++)
+		{
+			if (CurrTask->Lines[j + 1] != NULL)
+			{
+				if (IsLarger(CurrTask->Lines[j], CurrTask->Lines[j + 1]))
+				{
+					Temp = CurrTask->Lines[j];
+					CurrTask->Lines[j] = CurrTask->Lines[j + 1];
+					CurrTask->Lines[j + 1] = Temp;
+				}
+			}			
+		}
+	}
+}
+
 DWORD WINAPI SortThreadProc(LPVOID lpParam) {
 	int Identifier = (int)lpParam;
 	bool IsTerminate = false;
@@ -239,9 +284,10 @@ DWORD WINAPI SortThreadProc(LPVOID lpParam) {
 		{
 			if (ThreadTask != NULL && ThreadTask->IsDone == false)
 			{
+				SortLines(ThreadTask);
 				SetTaskComplite(Identifier);
 				wchar_t mybuff[256];
-				swprintf_s(mybuff, MSG_SORT_THREAD_T_F, GetThreadId(GetCurrentThread()));
+				swprintf_s(mybuff, MSG_SORT_THREAD_T_F, GetThreadId(GetCurrentThread()),Identifier);
 				AppendText(hMain, mybuff);
 			}
 		}		
@@ -249,6 +295,7 @@ DWORD WINAPI SortThreadProc(LPVOID lpParam) {
 	wchar_t buff[256];
 	swprintf_s(buff, MSG_SORT_THREAD_F, GetThreadId(GetCurrentThread()));
 	AppendText(hMain, buff);
+	PostMessage(hMain, WM_USER, 0, 0);
 	ExitThread(0);
 }
 
@@ -294,6 +341,7 @@ void OpenSourceFile(HWND hWnd)
 	ofn.Flags = OFN_EXPLORER;
 	if (GetOpenFileName(&ofn) == TRUE)
 	{
+		if (FileName != NULL) GlobalFree(FileName);
 		FileName = (TCHAR*)GlobalAlloc(GPTR, (wcslen(ofn.lpstrFile) + 1)*2);
 		for (int i = 0; i < wcslen(ofn.lpstrFile)+1; i++)
 		{
@@ -354,9 +402,33 @@ void PrepareTasks()
 	}
 }
 
+void WriteLineToFile(HANDLE hFile,Line* Line, int MainOffcet)
+{
+	WriteFile(hFile, FileView + MainOffcet, Line->size, NULL, NULL);
+}
+
 void ConcatinateRezult()
 {
-	// TODO
+	OpenSourceFile(hMain);
+	int MainOffcet = 0;
+	HANDLE hFile = CreateFile(FileName, FILE_WRITE_DATA, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	for (int i = 0; i < TaskQuery.size()*LINES_TOTASK; i++)
+	{
+		int Ind = 0;
+		Line* Max = NULL;
+		for (int i = 0; i < TaskQuery.size(); i++)
+		{
+			if (IsLarger(TaskQuery[i]->Lines[TaskQuery[i]->SortedInd], Max))
+			{
+				Max = TaskQuery[i]->Lines[TaskQuery[i]->SortedInd];
+				Ind = i;
+			}
+		}	
+		TaskQuery[Ind]->SortedInd++;
+		WriteLineToFile(hFile, Max, MainOffcet);
+		MainOffcet = MainOffcet + Max->size;
+	}
+	CloseHandle(hFile);
 }
 
 HANDLE CreateMyFile()
@@ -373,6 +445,9 @@ void PrintTaskCount(HWND hWnd)
 	AppendText(hWnd, m_reportFileName);
 }
 
+HANDLE hThreads[THREADS_COUNT];
+HANDLE Devider;
+
 void OnStartPerform(HWND hWnd)
 {
 	if (FileName == NULL) return;
@@ -381,26 +456,30 @@ void OnStartPerform(HWND hWnd)
 	AppendText(hWnd, MSG_TASKS_CREATED);
 	PrintTaskCount(hWnd);
 	DeviderArrMutex = CreateMutex(NULL, FALSE, NULL);
-	HANDLE hThreads[THREADS_COUNT];
-
 	for (int i = 0; i < THREADS_COUNT; i++)
 	{
 		hThreads[i] = CreateThread(NULL, 0, &SortThreadProc, (LPVOID)i, 0, NULL);
 	}
-	AppendText(hWnd, MSG_SORT_THREAD_CREATED);
-	
-	HANDLE Devider = CreateThread(NULL, 0, &DeviderThreadProc, 0, 0, NULL);
-	AppendText(hWnd, MSG_DEVIDER_THREAD_CREATED);
-
-	//WaitForSingleObject(Devider, INFINITE);
-	//WaitForMultipleObjects(THREADS_COUNT, hThreads, TRUE, INFINITE);
-	//ConcatinateRezult();
+	AppendText(hWnd, MSG_SORT_THREAD_CREATED);	
+	Devider = CreateThread(NULL, 0, &DeviderThreadProc, 0, 0, NULL);
+	AppendText(hWnd, MSG_DEVIDER_THREAD_CREATED);	
 }
+
+int ThreadsTermCount = 0;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
+	case WM_USER:
+		ThreadsTermCount++;
+		if (ThreadsTermCount == THREADS_COUNT + 1)
+		{
+			WaitForSingleObject(Devider, INFINITE);
+			WaitForMultipleObjects(THREADS_COUNT, hThreads, TRUE, INFINITE);
+			ConcatinateRezult();
+		}
+		break;
 	case WM_CREATE:
 		TextBoxMutex = CreateMutex(NULL, FALSE, NULL);
 		hMain = hWnd;
