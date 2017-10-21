@@ -208,7 +208,7 @@ DWORD WINAPI DeviderThreadProc(LPVOID lpParam) {
 		i++;
 		if (i >= THREADS_COUNT) i = 0;
 	}
-	Task *EndTask = new Task();
+	Task* EndTask = new Task();
 	EndTask->IsTerminate = true;
 	for (int i = 0; i < THREADS_COUNT; i++)
 	{
@@ -216,6 +216,7 @@ DWORD WINAPI DeviderThreadProc(LPVOID lpParam) {
 	}
 	AppendText(MSG_DEVIDER_F);
 	PostMessage(hMain, WM_USER, 0, 0);
+	delete EndTask;
 	ExitThread(0);
 }
 
