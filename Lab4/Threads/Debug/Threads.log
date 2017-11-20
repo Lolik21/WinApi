@@ -4,5 +4,5 @@ c:\users\notepad.by\documents\github\winapi\lab4\threads\threads.cpp(349): warni
 c:\users\notepad.by\documents\github\winapi\lab4\threads\threads.cpp(419): warning C4018: <: несоответствие типов со знаком и без знака
 c:\users\notepad.by\documents\github\winapi\lab4\threads\threads.cpp(423): warning C4018: <: несоответствие типов со знаком и без знака
 c:\users\notepad.by\documents\github\winapi\lab4\threads\threads.cpp(476): warning C4018: <: несоответствие типов со знаком и без знака
+cl : командная строка warning D9028: сбой минимальной повторной сборки, возврат к обычной сборке
   Threads.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab4\Threads\Debug\Threads.exe
-  Threads.vcxproj -> C:\Users\NotePad.by\Documents\GitHub\WinApi\Lab4\Threads\Debug\Threads.pdb (Partial PDB)
