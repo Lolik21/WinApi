@@ -483,7 +483,6 @@ void ClearMem()
 	}
 	TaskQuery.clear();
 	GlobalFree(FileName);
-	UnmapViewOfFileEx(FileView, 0);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -530,7 +529,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_DESTROY:
 		if (FileName != NULL) GlobalFree(FileName);
-
 		PostQuitMessage(0);
 		break;
 	default:
